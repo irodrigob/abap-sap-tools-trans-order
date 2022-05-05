@@ -77,6 +77,7 @@ CLASS zcl_spt_apps_trans_order IMPLEMENTATION.
   METHOD zif_spt_core_app~get_app_type.
     ev_app = 'TRANS_ORDER'.
     ev_app_desc = 'Transport order'(t01).
+    ev_service = '/ZSAP_TOOLS_TRANS_ORDER_SRV'.
   ENDMETHOD.
 
   METHOD get_user_orders.
@@ -108,14 +109,7 @@ CLASS zcl_spt_apps_trans_order IMPLEMENTATION.
     LOOP AT lt_request ASSIGNING FIELD-SYMBOL(<ls_request>)
                                  WHERE strkorr IS INITIAL.
 
-*ls_orders-order = <ls_request>-trkorr.
-*      ls_orders-user = <ls_request>-as4user.
-*      ls_orders-description = <ls_request>-as4text.
-*      ls_orders-type = <ls_request>-trfunction.
-
       " Relleno los campos base de la orden
-
-
       DATA(ls_orders) = VALUE ts_user_orders( order = <ls_request>-trkorr
                                               order_user = <ls_request>-as4user
                                               order_desc = <ls_request>-as4text
