@@ -75,9 +75,12 @@ ENDCLASS.
 
 CLASS zcl_spt_apps_trans_order IMPLEMENTATION.
   METHOD zif_spt_core_app~get_app_type.
-    ev_app = 'TRANS_ORDER'.
-    ev_app_desc = 'Transport order'(t01).
-    ev_service = '/ZSAP_TOOLS_TRANS_ORDER_SRV'.
+    CLEAR: es_app.
+
+    es_app-app = 'TRANS_ORDER'.
+    es_app-app_desc = 'Transport order'(t01).
+    es_app-service = '/ZSAP_TOOLS_TRANS_ORDER_SRV'.
+    es_app-frontend_page = '/trans_order'.
   ENDMETHOD.
 
   METHOD get_user_orders.
