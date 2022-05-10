@@ -108,6 +108,9 @@ CLASS zcl_spt_apps_trans_order IMPLEMENTATION.
       IMPORTING
         et_requests          = lt_request.
 
+
+    SORT lt_request BY as4date DESCENDING as4time DESCENDING.
+
     " Sacamos las padres para ir obteniendo los hijos
     LOOP AT lt_request ASSIGNING FIELD-SYMBOL(<ls_request>)
                                  WHERE strkorr IS INITIAL.
