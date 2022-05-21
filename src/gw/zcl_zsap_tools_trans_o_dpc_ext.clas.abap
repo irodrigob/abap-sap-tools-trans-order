@@ -6,12 +6,45 @@ CLASS zcl_zsap_tools_trans_o_dpc_ext DEFINITION
   PUBLIC SECTION.
   PROTECTED SECTION.
     METHODS getusersordersse_get_entityset REDEFINITION.
+    METHODS getsystemstransp_get_entityset REDEFINITION.
   PRIVATE SECTION.
 ENDCLASS.
 
 
 
 CLASS zcl_zsap_tools_trans_o_dpc_ext IMPLEMENTATION.
+
+
+  METHOD getsystemstransp_get_entityset.
+    CLEAR: et_entityset.
+
+    TRY.
+
+        DATA(lv_langu) = sy-langu.
+        ASSIGN it_filter_select_options[ property = 'langu' ]-select_options[ 1 ] TO FIELD-SYMBOL(<ls_select_options>).
+        IF sy-subrc = 0.
+          CALL FUNCTION 'CONVERSION_EXIT_ISOLA_INPUT'
+            EXPORTING
+              input            = <ls_select_options>-low
+            IMPORTING
+              output           = lv_langu
+            EXCEPTIONS
+              unknown_language = 1
+              OTHERS           = 2.
+          IF sy-subrc NE 0.
+            lv_langu = sy-langu.
+          ENDIF.
+        ENDIF.
+
+        DATA(lo_order) = NEW zcl_spt_apps_trans_order( iv_langu = lv_langu ).
+
+        et_entityset = CORRESPONDING #( lo_order->get_systems_transport(  ) ).
+
+      CATCH cx_root.
+    ENDTRY.
+  ENDMETHOD.
+
+
   METHOD getusersordersse_get_entityset.
 
     CLEAR: et_entityset.

@@ -16,6 +16,11 @@ CLASS zcl_spt_apps_trans_order DEFINITION
              task_status_desc TYPE val_text,
            END OF ts_user_orders.
     TYPES: tt_user_orders TYPE STANDARD TABLE OF ts_user_orders WITH EMPTY KEY.
+    TYPES: BEGIN OF ts_systems_transport,
+             system_name TYPE sysname,
+             system_desc TYPE string,
+           END OF ts_systems_transport.
+    TYPES: tt_systems_transport TYPE STANDARD TABLE OF ts_systems_transport WITH EMPTY KEY.
     METHODS zif_spt_core_app~get_app_type REDEFINITION.
     "! <p class="shorttext synchronized">Devuelve las ordenes de un usuario </p>
     "! @parameter iv_username | <p class="shorttext synchronized">Usuario</p>
@@ -39,6 +44,10 @@ CLASS zcl_spt_apps_trans_order DEFINITION
         !iv_release_from_to   TYPE sy-datum OPTIONAL
       EXPORTING
         et_orders             TYPE tt_user_orders.
+    "! <p class="shorttext synchronized">Sistemas de transporte</p>
+    "! @parameter rt_systems | <p class="shorttext synchronized">Sistemas</p>
+    METHODS get_systems_transport
+      RETURNING VALUE(rt_systems) TYPE tt_systems_transport.
   PROTECTED SECTION.
     "! <p class="shorttext synchronized">Parámetros de selección</p>
     "! @parameter iv_username | <p class="shorttext synchronized">Usuario</p>
@@ -109,7 +118,7 @@ CLASS zcl_spt_apps_trans_order IMPLEMENTATION.
         et_requests          = lt_request.
 
 
-    SORT lt_request BY as4date DESCENDING as4time DESCENDING.
+    SORT lt_request BY trfunction DESCENDING as4date DESCENDING as4time DESCENDING.
 
     " Sacamos las padres para ir obteniendo los hijos
     LOOP AT lt_request ASSIGNING FIELD-SYMBOL(<ls_request>)
@@ -222,6 +231,41 @@ CLASS zcl_spt_apps_trans_order IMPLEMENTATION.
           illegal_value = 1
           op_failure    = 2
           OTHERS        = 3.
+    ENDIF.
+
+  ENDMETHOD.
+
+  METHOD get_systems_transport.
+    DATA lv_version TYPE tcevers-version.
+
+    CLEAR rt_systems.
+
+* Version activa del sistema de transporte
+    CALL FUNCTION 'TR_GET_CONFIG_VERSION'
+      IMPORTING
+        ev_active_version       = lv_version
+      EXCEPTIONS
+        no_active_version_found = 1.
+
+    IF sy-subrc = 0.
+      SELECT sysname AS system_name ddtext AS system_desc INTO TABLE rt_systems
+              FROM  tcesystt
+               WHERE version = lv_version
+               AND   spras  = mv_langu.
+      IF sy-subrc NE 0.
+        " Si no hay en el idioma global busco en el de logon
+        SELECT sysname AS system_name ddtext AS system_desc INTO TABLE rt_systems
+                      FROM  tcesystt
+                       WHERE version = lv_version
+                       AND   spras  = sy-langu.
+        IF sy-subrc NE 0.
+          " Si no hay busco directamente el codig, y la descripcion será el mismo codigo
+          SELECT sysname AS system_name sysname AS system_desc INTO TABLE rt_systems
+                        FROM  tcesyst
+                         WHERE version = lv_version.
+        ENDIF.
+      ENDIF.
+
     ENDIF.
 
   ENDMETHOD.
