@@ -48,6 +48,20 @@ CLASS zcl_spt_apps_trans_order DEFINITION
     "! @parameter rt_systems | <p class="shorttext synchronized">Sistemas</p>
     METHODS get_systems_transport
       RETURNING VALUE(rt_systems) TYPE tt_systems_transport.
+    "! <p class="shorttext synchronized">Hacer transporte de copia</p>
+    "! @parameter it_orders | <p class="shorttext synchronized">Ordenes</p>
+    "! @parameter iv_system | <p class="shorttext synchronized">Sistema</p>
+    "! @parameter iv_description | <p class="shorttext synchronized">Descripción</p>
+    "! @parameter et_return | <p class="shorttext synchronized">Retorno del proceso</p>
+    "! @parameter ev_order | <p class="shorttext synchronized">Orden creada</p>
+    METHODS do_transport_copy
+      IMPORTING
+        it_orders      TYPE zif_spt_trans_order_data=>tt_orders
+        iv_system      TYPE sysname
+        iv_description TYPE string
+      EXPORTING
+        et_return      TYPE zif_spt_core_data=>tt_return
+        ev_order       TYPE trkorr.
   PROTECTED SECTION.
     "! <p class="shorttext synchronized">Parámetros de selección</p>
     "! @parameter iv_username | <p class="shorttext synchronized">Usuario</p>
@@ -77,20 +91,180 @@ CLASS zcl_spt_apps_trans_order DEFINITION
       EXPORTING
         et_functions TYPE dd07v_tab
         et_status    TYPE dd07v_tab.
+    "! <p class="shorttext synchronized">Creación de orden de transporte</p>
+    "! @parameter iv_type | <p class="shorttext synchronized">Tipo de orden</p>
+    "! @parameter iv_system | <p class="shorttext synchronized">Sistema</p>
+    "! @parameter iv_description | <p class="shorttext synchronized">Descripción</p>
+    "! @parameter iv_user | <p class="shorttext synchronized">Usuario</p>
+    "! @parameter es_return | <p class="shorttext synchronized">Retorno de la creación</p>
+    "! @parameter ev_order | <p class="shorttext synchronized">Orden creada</p>
+    METHODS create_order
+      IMPORTING
+        iv_type        TYPE trfunction
+        iv_description TYPE string
+        iv_system      TYPE sysname OPTIONAL
+        iv_user        TYPE syuname DEFAULT sy-uname
+      EXPORTING
+        es_return      TYPE zif_spt_core_data=>ts_return
+        ev_order       TYPE trkorr.
+    "! <p class="shorttext synchronized">Copia el contenido de unas ordenes a otra orden</p>
+    "! @parameter it_from_orders | <p class="shorttext synchronized">Ordenes origen</p>
+    "! @parameter iv_to_order | <p class="shorttext synchronized">Orden destino</p>
+    METHODS copy_content_orders_2_order
+      IMPORTING
+        it_from_orders TYPE zif_spt_trans_order_data=>tt_orders
+        iv_to_order    TYPE trkorr.
   PRIVATE SECTION.
 ENDCLASS.
 
 
 
-CLASS zcl_spt_apps_trans_order IMPLEMENTATION.
-  METHOD zif_spt_core_app~get_app_type.
-    CLEAR: es_app.
+CLASS ZCL_SPT_APPS_TRANS_ORDER IMPLEMENTATION.
 
-    es_app-app = 'TRANS_ORDER'.
-    es_app-app_desc = 'Transport order'(t01).
-    es_app-service = '/ZSAP_TOOLS_TRANS_ORDER_SRV'.
-    es_app-frontend_page = '/trans_order'.
+
+  METHOD copy_content_orders_2_order.
+    LOOP AT it_from_orders ASSIGNING FIELD-SYMBOL(<ls_orders>).
+      CALL FUNCTION 'TR_COPY_COMM'
+        EXPORTING
+          wi_dialog                = space
+          wi_trkorr_from           = <ls_orders>
+          wi_trkorr_to             = iv_to_order
+          wi_without_documentation = abap_true
+        EXCEPTIONS
+          OTHERS                   = 1.
+    ENDLOOP.
   ENDMETHOD.
+
+
+  METHOD create_order.
+
+    CLEAR: es_return.
+
+    DATA(lv_order_text) = CONV e07t-as4text( iv_description ).
+
+    CALL FUNCTION 'TRINT_INSERT_NEW_COMM'
+      EXPORTING
+        wi_kurztext   = lv_order_text
+        wi_trfunction = iv_type
+        iv_username   = sy-uname
+        iv_tarsystem  = iv_system
+        wi_client     = sy-mandt
+      IMPORTING
+        we_trkorr     = ev_order
+      EXCEPTIONS
+        OTHERS        = 1.
+    IF sy-subrc = 0.
+
+    ELSE.
+      DATA(ls_return_bapi) = zcl_spt_utilities=>fill_return( iv_type = zif_spt_core_data=>cs_message-type_error
+                                                           iv_id = sy-msgid
+                                                           iv_number = sy-msgno
+                                                           iv_message_v1 = sy-msgv1
+                                                           iv_message_v2 = sy-msgv2
+                                                           iv_message_v3 = sy-msgv3
+                                                           iv_message_v4 = sy-msgv4
+                                                           iv_langu      = mv_langu ).
+      es_return-type = zif_spt_core_data=>cs_message-type_error.
+      es_return-message = ls_return_bapi-message.
+
+    ENDIF.
+
+  ENDMETHOD.
+
+
+  METHOD do_transport_copy.
+
+    " Se crea la orden donde se pondrán los objetos
+    create_order( EXPORTING iv_type = zif_spt_trans_order_data=>orders_type-transport_copies
+                            iv_description = iv_description
+                            iv_system = iv_system
+                  IMPORTING es_return = DATA(ls_return)
+                            ev_order = ev_order ).
+
+    " Se pasa el contenido de las ordenes pasadas a la nueva orden
+    copy_content_orders_2_order( EXPORTING it_from_orders = it_orders
+                                             iv_to_order = ev_order ).
+
+
+  ENDMETHOD.
+
+
+  METHOD fill_selections_orders.
+    CLEAR rs_selections.
+
+    IF iv_type_workbench = abap_true.
+      rs_selections-reqfunctions(1)     = sctsc_type_workbench.
+    ENDIF.
+    IF iv_type_customizing = abap_true.
+      rs_selections-reqfunctions+1(1)   = sctsc_type_customizing.
+    ENDIF.
+    IF iv_type_transport = abap_true.
+      rs_selections-reqfunctions+2(1)   = sctsc_type_transport.
+    ENDIF.
+
+* Types of assigned tasks
+    rs_selections-taskfunctions      = sctsc_types_tasks.
+
+* Status para ordenes modificables
+    IF iv_status_modif = abap_true.
+      rs_selections-taskstatus(1)     = sctsc_state_protected.
+      rs_selections-taskstatus+1(1)   = sctsc_state_changeable.
+    ENDIF.
+
+* Status para ordenes liberadas
+    IF iv_status_release = abap_true.
+      rs_selections-taskstatus+2(1)   = sctsc_state_released.
+      rs_selections-taskstatus+3(1)   = sctsc_state_notconfirmed.
+    ENDIF.
+
+    IF iv_status_modif = abap_true AND iv_status_release = abap_false.
+      rs_selections-reqstatus(1)   = sctsc_state_protected.
+      rs_selections-reqstatus+1(1) = sctsc_state_changeable.
+*    r_selections-reqstatus+2(1) = sctsc_state_export_started.
+    ELSEIF iv_status_modif = abap_false AND iv_status_release = abap_true.
+      rs_selections-reqstatus(1)   = sctsc_state_released.
+      rs_selections-reqstatus+1(1) = sctsc_state_export_started.
+    ELSEIF iv_status_modif = abap_true AND iv_status_release = abap_true.
+      rs_selections-reqstatus      = sctsc_states_all.
+    ENDIF.
+  ENDMETHOD.
+
+
+  METHOD get_systems_transport.
+    DATA lv_version TYPE tcevers-version.
+
+    CLEAR rt_systems.
+
+* Version activa del sistema de transporte
+    CALL FUNCTION 'TR_GET_CONFIG_VERSION'
+      IMPORTING
+        ev_active_version       = lv_version
+      EXCEPTIONS
+        no_active_version_found = 1.
+
+    IF sy-subrc = 0.
+      SELECT sysname AS system_name ddtext AS system_desc INTO TABLE rt_systems
+              FROM  tcesystt
+               WHERE version = lv_version
+               AND   spras  = mv_langu.
+      IF sy-subrc NE 0.
+        " Si no hay en el idioma global busco en el de logon
+        SELECT sysname AS system_name ddtext AS system_desc INTO TABLE rt_systems
+                      FROM  tcesystt
+                       WHERE version = lv_version
+                       AND   spras  = sy-langu.
+        IF sy-subrc NE 0.
+          " Si no hay busco directamente el codig, y la descripcion será el mismo codigo
+          SELECT sysname AS system_name sysname AS system_desc INTO TABLE rt_systems
+                        FROM  tcesyst
+                         WHERE version = lv_version.
+        ENDIF.
+      ENDIF.
+
+    ENDIF.
+
+  ENDMETHOD.
+
 
   METHOD get_user_orders.
     DATA lt_request TYPE trwbo_request_headers.
@@ -156,47 +330,6 @@ CLASS zcl_spt_apps_trans_order IMPLEMENTATION.
   ENDMETHOD.
 
 
-  METHOD fill_selections_orders.
-    CLEAR rs_selections.
-
-    IF iv_type_workbench = abap_true.
-      rs_selections-reqfunctions(1)     = sctsc_type_workbench.
-    ENDIF.
-    IF iv_type_customizing = abap_true.
-      rs_selections-reqfunctions+1(1)   = sctsc_type_customizing.
-    ENDIF.
-    IF iv_type_transport = abap_true.
-      rs_selections-reqfunctions+2(1)   = sctsc_type_transport.
-    ENDIF.
-
-* Types of assigned tasks
-    rs_selections-taskfunctions      = sctsc_types_tasks.
-
-* Status para ordenes modificables
-    IF iv_status_modif = abap_true.
-      rs_selections-taskstatus(1)     = sctsc_state_protected.
-      rs_selections-taskstatus+1(1)   = sctsc_state_changeable.
-    ENDIF.
-
-* Status para ordenes liberadas
-    IF iv_status_release = abap_true.
-      rs_selections-taskstatus+2(1)   = sctsc_state_released.
-      rs_selections-taskstatus+3(1)   = sctsc_state_notconfirmed.
-    ENDIF.
-
-    IF iv_status_modif = abap_true AND iv_status_release = abap_false.
-      rs_selections-reqstatus(1)   = sctsc_state_protected.
-      rs_selections-reqstatus+1(1) = sctsc_state_changeable.
-*    r_selections-reqstatus+2(1) = sctsc_state_export_started.
-    ELSEIF iv_status_modif = abap_false AND iv_status_release = abap_true.
-      rs_selections-reqstatus(1)   = sctsc_state_released.
-      rs_selections-reqstatus+1(1) = sctsc_state_export_started.
-    ELSEIF iv_status_modif = abap_true AND iv_status_release = abap_true.
-      rs_selections-reqstatus      = sctsc_states_all.
-    ENDIF.
-  ENDMETHOD.
-
-
   METHOD load_domain_texts.
     DATA lt_functions_n TYPE dd07v_tab.
     DATA lt_status_n TYPE dd07v_tab.
@@ -235,39 +368,13 @@ CLASS zcl_spt_apps_trans_order IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD get_systems_transport.
-    DATA lv_version TYPE tcevers-version.
 
-    CLEAR rt_systems.
+  METHOD zif_spt_core_app~get_app_type.
+    CLEAR: es_app.
 
-* Version activa del sistema de transporte
-    CALL FUNCTION 'TR_GET_CONFIG_VERSION'
-      IMPORTING
-        ev_active_version       = lv_version
-      EXCEPTIONS
-        no_active_version_found = 1.
-
-    IF sy-subrc = 0.
-      SELECT sysname AS system_name ddtext AS system_desc INTO TABLE rt_systems
-              FROM  tcesystt
-               WHERE version = lv_version
-               AND   spras  = mv_langu.
-      IF sy-subrc NE 0.
-        " Si no hay en el idioma global busco en el de logon
-        SELECT sysname AS system_name ddtext AS system_desc INTO TABLE rt_systems
-                      FROM  tcesystt
-                       WHERE version = lv_version
-                       AND   spras  = sy-langu.
-        IF sy-subrc NE 0.
-          " Si no hay busco directamente el codig, y la descripcion será el mismo codigo
-          SELECT sysname AS system_name sysname AS system_desc INTO TABLE rt_systems
-                        FROM  tcesyst
-                         WHERE version = lv_version.
-        ENDIF.
-      ENDIF.
-
-    ENDIF.
-
+    es_app-app = 'TRANS_ORDER'.
+    es_app-app_desc = 'Transport order'(t01).
+    es_app-service = '/ZSAP_TOOLS_TRANS_ORDER_SRV'.
+    es_app-frontend_page = '/trans_order'.
   ENDMETHOD.
-
 ENDCLASS.

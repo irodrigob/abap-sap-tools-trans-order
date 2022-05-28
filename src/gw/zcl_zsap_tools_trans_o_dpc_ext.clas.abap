@@ -7,6 +7,7 @@ CLASS zcl_zsap_tools_trans_o_dpc_ext DEFINITION
   PROTECTED SECTION.
     METHODS getusersordersse_get_entityset REDEFINITION.
     METHODS getsystemstransp_get_entityset REDEFINITION.
+    methods dotransportcopys_get_entityset REDEFINITION.
   PRIVATE SECTION.
 ENDCLASS.
 
@@ -71,6 +72,10 @@ CLASS zcl_zsap_tools_trans_o_dpc_ext IMPLEMENTATION.
       et_orders            = DATA(lt_orders) ).
 
     et_entityset = CORRESPONDING #( lt_orders ).
+
+  ENDMETHOD.
+
+  METHOD dotransportcopys_get_entityset.
 
   ENDMETHOD.
 
