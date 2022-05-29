@@ -60,6 +60,12 @@
      <LANGU>E</LANGU>
      <DESCRIPT>Lectura de datos de una orden</DESCRIPT>
     </SEOCOMPOTX>
+    <SEOCOMPOTX>
+     <CLSNAME>ZCL_SPT_APPS_TRANS_ORDER</CLSNAME>
+     <CMPNAME>RELEASE_ORDER</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>Liberación de una orden/tarea</DESCRIPT>
+    </SEOCOMPOTX>
    </DESCRIPTIONS>
   </asx:values>
  </asx:abap>

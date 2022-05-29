@@ -1,4 +1,4 @@
-class ZCX_TRANS_ORDER definition
+class ZCX_SPT_TRANS_ORDER definition
   public
   inheriting from CX_STATIC_CHECK
   final
@@ -37,7 +37,7 @@ ENDCLASS.
 
 
 
-CLASS ZCX_TRANS_ORDER IMPLEMENTATION.
+CLASS ZCX_SPT_TRANS_ORDER IMPLEMENTATION.
 
 
   method CONSTRUCTOR.

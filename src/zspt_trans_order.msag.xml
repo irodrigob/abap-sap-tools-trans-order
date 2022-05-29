@@ -14,6 +14,18 @@
      <MSGNR>000</MSGNR>
      <TEXT>&amp; &amp; &amp; 6</TEXT>
     </T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZSPT_TRANS_ORDER</ARBGB>
+     <MSGNR>001</MSGNR>
+     <TEXT>Order/task &amp; released</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZSPT_TRANS_ORDER</ARBGB>
+     <MSGNR>002</MSGNR>
+     <TEXT>Order &amp; created</TEXT>
+    </T100>
    </T100>
   </asx:values>
  </asx:abap>

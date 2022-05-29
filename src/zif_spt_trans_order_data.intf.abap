@@ -8,5 +8,7 @@ INTERFACE zif_spt_trans_order_data
                workbench        TYPE trfunction VALUE 'K',
                customizing      TYPE trfunction VALUE 'W',
              END OF orders_type.
-
+  CONSTANTS: BEGIN OF cs_message,
+               id TYPE symsgid VALUE 'ZSPT_TRANS_ORDER',
+             END OF cs_message.
 ENDINTERFACE.
