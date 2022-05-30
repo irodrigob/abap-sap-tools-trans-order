@@ -26,6 +26,12 @@
      <MSGNR>002</MSGNR>
      <TEXT>Order &amp; created</TEXT>
     </T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZSPT_TRANS_ORDER</ARBGB>
+     <MSGNR>003</MSGNR>
+     <TEXT>Must pass at least one order</TEXT>
+    </T100>
    </T100>
   </asx:values>
  </asx:abap>

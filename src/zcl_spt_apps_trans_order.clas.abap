@@ -334,35 +334,45 @@ CLASS zcl_spt_apps_trans_order IMPLEMENTATION.
 
   METHOD do_transport_copy.
 
-    " Se chequean que no haya ningun objeto inactivo de las ordenes pasadas. Ya que si hay alguno no se podrña
-    " liberar la orden y se quedaría colgada.
-    check_inactive_objects( EXPORTING it_orders = it_orders
-                            IMPORTING et_return = et_return ).
+    IF it_orders IS NOT INITIAL.
 
-    " Si no hay errores se continua el proceso.
-    IF et_return IS INITIAL.
+      " Se chequean que no haya ningun objeto inactivo de las ordenes pasadas. Ya que si hay alguno no se podrña
+      " liberar la orden y se quedaría colgada.
+      check_inactive_objects( EXPORTING it_orders = it_orders
+                              IMPORTING et_return = et_return ).
 
-      " Se crea la orden donde se pondrán los objetos
-      create_order( EXPORTING iv_type = zif_spt_trans_order_data=>orders_type-transport_copies
-                              iv_description = iv_description
-                              iv_system = iv_system
-                    IMPORTING es_return = DATA(ls_return)
-                              ev_order = ev_order ).
+      " Si no hay errores se continua el proceso.
+      IF et_return IS INITIAL.
 
-      IF ls_return-type NE zif_spt_core_data=>cs_message-type_error.
-        " Se pasa el contenido de las ordenes pasadas a la nueva orden
-        copy_content_orders_2_order( EXPORTING it_from_orders = it_orders
-                                                 iv_to_order = ev_order
-                                     IMPORTING et_return = et_return ).
-        IF et_return IS INITIAL.
-          " Se libera la orden
-          DATA(ls_return_release) = release_order( EXPORTING iv_without_locking = abap_true " Evitamos el error de objetos de bloqueo por transporte de copias
-                                                             iv_order = ev_order ).
+        " Se crea la orden donde se pondrán los objetos
+        create_order( EXPORTING iv_type = zif_spt_trans_order_data=>orders_type-transport_copies
+                                iv_description = iv_description
+                                iv_system = iv_system
+                      IMPORTING es_return = DATA(ls_return)
+                                ev_order = ev_order ).
+
+        IF ls_return-type NE zif_spt_core_data=>cs_message-type_error.
+          " Se pasa el contenido de las ordenes pasadas a la nueva orden
+          copy_content_orders_2_order( EXPORTING it_from_orders = it_orders
+                                                   iv_to_order = ev_order
+                                       IMPORTING et_return = et_return ).
+          IF et_return IS INITIAL.
+            " Se libera la orden
+            DATA(ls_return_release) = release_order( EXPORTING iv_without_locking = abap_true " Evitamos el error de objetos de bloqueo por transporte de copias
+                                                               iv_order = ev_order ).
+          ENDIF.
+        ELSE.
+          INSERT ls_return INTO TABLE et_return.
         ENDIF.
-      ELSE.
-        INSERT ls_return INTO TABLE et_return.
+
       ENDIF.
 
+    ELSE.
+      INSERT VALUE #( type = zif_spt_core_data=>cs_message-type_error
+                      message = zcl_spt_utilities=>fill_return( iv_type = zif_spt_core_data=>cs_message-type_success
+                                                                        iv_id = zif_spt_trans_order_data=>cs_message-id
+                                                                        iv_number = '003'
+                                                                        iv_langu      = mv_langu )-message ) INTO TABLE et_return.
     ENDIF.
 
   ENDMETHOD.

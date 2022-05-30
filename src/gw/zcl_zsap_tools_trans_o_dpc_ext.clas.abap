@@ -7,7 +7,7 @@ CLASS zcl_zsap_tools_trans_o_dpc_ext DEFINITION
   PROTECTED SECTION.
     METHODS getusersordersse_get_entityset REDEFINITION.
     METHODS getsystemstransp_get_entityset REDEFINITION.
-    methods dotransportcopys_get_entityset REDEFINITION.
+    METHODS dotransportcopys_get_entityset REDEFINITION.
   PRIVATE SECTION.
 ENDCLASS.
 
@@ -76,6 +76,28 @@ CLASS zcl_zsap_tools_trans_o_dpc_ext IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD dotransportcopys_get_entityset.
+
+    CLEAR: et_entityset.
+
+    DATA(lo_order) = NEW zcl_spt_apps_trans_order(  ).
+
+    lo_order->do_transport_copy(
+      EXPORTING
+        it_orders      = VALUE #( FOR <wa> IN it_filter_select_options[ property = 'order' ]-select_options ( CONV trkorr( <wa>-low ) ) )
+        iv_system      = CONV #( it_filter_select_options[ property = 'system' ]-select_options[ 1 ]-low )
+        iv_description = it_filter_select_options[ property = 'orderDescription' ]-select_options[ 1 ]-low
+      IMPORTING
+        et_return      = DATA(lt_return)
+        ev_order       = DATA(lv_order) ).
+
+    LOOP AT lt_return ASSIGNING FIELD-SYMBOL(<ls_return>).
+      INSERT VALUE #(  order_created = lv_order
+                       return-type = <ls_return>-type
+                       return-message = <ls_return>-message ) INTO TABLE et_entityset.
+    ENDLOOP.
+    IF sy-subrc NE 0.
+      INSERT VALUE #(  order_created = lv_order ) INTO TABLE et_entityset.
+    ENDIF.
 
   ENDMETHOD.
 
