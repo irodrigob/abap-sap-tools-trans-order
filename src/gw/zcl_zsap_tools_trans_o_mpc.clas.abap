@@ -45,7 +45,7 @@ public section.
   types:
       begin of TS_DOTRANSPORTCOPY,
      ORDER type TRKORR,
-     LANGU type SYLANGU,
+     LANGU type string,
      SYSTEM type string,
      ORDER_DESCRIPTION type string,
      ORDER_CREATED type TRKORR,
@@ -192,7 +192,6 @@ lo_property->/iwbep/if_mgw_odata_annotatabl~create_annotation( 'sap' )->add(
         iv_value    = 'false' ).
 lo_property = lo_entity_type->create_property( iv_property_name = 'langu' iv_abap_fieldname = 'LANGU' ). "#EC NOTEXT
 lo_property->set_type_edm_string( ).
-lo_property->set_conversion_exit( 'ISOLA' ). "#EC NOTEXT
 lo_property->set_creatable( abap_false ).
 lo_property->set_updatable( abap_false ).
 lo_property->set_sortable( abap_false ).
@@ -230,7 +229,7 @@ lo_property->set_creatable( abap_false ).
 lo_property->set_updatable( abap_false ).
 lo_property->set_sortable( abap_false ).
 lo_property->set_nullable( abap_false ).
-lo_property->set_filterable( abap_true ).
+lo_property->set_filterable( abap_false ).
 lo_property->/iwbep/if_mgw_odata_annotatabl~create_annotation( 'sap' )->add(
       EXPORTING
         iv_key      = 'unicode'
@@ -499,7 +498,7 @@ lo_entity_set->set_filter_required( abap_false ).
 *&---------------------------------------------------------------------*
 
 
-  CONSTANTS: lc_gen_date_time TYPE timestamp VALUE '20220528151009'.                  "#EC NOTEXT
+  CONSTANTS: lc_gen_date_time TYPE timestamp VALUE '20220602203622'.                  "#EC NOTEXT
   rv_last_modified = super->get_last_modified( ).
   IF rv_last_modified LT lc_gen_date_time.
     rv_last_modified = lc_gen_date_time.

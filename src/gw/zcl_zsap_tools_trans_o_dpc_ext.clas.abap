@@ -21,21 +21,7 @@ CLASS zcl_zsap_tools_trans_o_dpc_ext IMPLEMENTATION.
 
     TRY.
 
-        DATA(lv_langu) = sy-langu.
-        ASSIGN it_filter_select_options[ property = 'langu' ]-select_options[ 1 ] TO FIELD-SYMBOL(<ls_select_options>).
-        IF sy-subrc = 0.
-          CALL FUNCTION 'CONVERSION_EXIT_ISOLA_INPUT'
-            EXPORTING
-              input            = <ls_select_options>-low
-            IMPORTING
-              output           = lv_langu
-            EXCEPTIONS
-              unknown_language = 1
-              OTHERS           = 2.
-          IF sy-subrc NE 0.
-            lv_langu = sy-langu.
-          ENDIF.
-        ENDIF.
+        DATA(lv_langu) = zcl_spt_utilities=>convert_iso_langu_2_sap( CONV laiso( it_filter_select_options[ property = 'langu' ]-select_options[ 1 ]-low ) ).
 
         DATA(lo_order) = NEW zcl_spt_apps_trans_order( iv_langu = lv_langu ).
 
@@ -79,7 +65,9 @@ CLASS zcl_zsap_tools_trans_o_dpc_ext IMPLEMENTATION.
 
     CLEAR: et_entityset.
 
-    DATA(lo_order) = NEW zcl_spt_apps_trans_order(  ).
+    DATA(lv_langu) = zcl_spt_utilities=>convert_iso_langu_2_sap( CONV laiso( it_filter_select_options[ property = 'langu' ]-select_options[ 1 ]-low ) ).
+
+    DATA(lo_order) = NEW zcl_spt_apps_trans_order( iv_langu = lv_langu ).
 
     lo_order->do_transport_copy(
       EXPORTING
