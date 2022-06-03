@@ -358,8 +358,9 @@ CLASS zcl_spt_apps_trans_order IMPLEMENTATION.
                                        IMPORTING et_return = et_return ).
           IF et_return IS INITIAL.
             " Se libera la orden
-            DATA(ls_return_release) = release_order( EXPORTING iv_without_locking = abap_true " Evitamos el error de objetos de bloqueo por transporte de copias
-                                                               iv_order = ev_order ).
+            INSERT release_order( EXPORTING iv_without_locking = abap_true " Evitamos el error de objetos de bloqueo por transporte de copias
+                                                               iv_order = ev_order ) INTO TABLE et_return.
+
           ENDIF.
         ELSE.
           INSERT ls_return INTO TABLE et_return.
@@ -562,6 +563,13 @@ CLASS zcl_spt_apps_trans_order IMPLEMENTATION.
                                                                       iv_message_v1 = iv_order
                                                                       iv_langu      = mv_langu )-message ).
     ELSE.
+      DATA(lv_msgno) = sy-msgno.
+      DATA(lv_msgid) = sy-msgid.
+      DATA(lv_msgv1) = sy-msgv1.
+      DATA(lv_msgv2) = sy-msgv2.
+      DATA(lv_msgv3) = sy-msgv3.
+      DATA(lv_msgv4) = sy-msgv4.
+
       rs_return = VALUE #( type = zif_spt_core_data=>cs_message-type_error
                            message = zcl_spt_utilities=>fill_return( iv_type = zif_spt_core_data=>cs_message-type_error
                                                                      iv_id = sy-msgid
@@ -571,6 +579,19 @@ CLASS zcl_spt_apps_trans_order IMPLEMENTATION.
                                                                      iv_message_v3 = sy-msgv3
                                                                      iv_message_v4 = sy-msgv4
                                                                      iv_langu      = mv_langu )-message ).
+      " Para los mensajes estándar si no hay texto mensaje y el idioma global difiere al idioma
+      " de conexión entonces saco el mensae en el idioma de logon.
+      IF rs_return-message IS INITIAL AND mv_langu NE sy-langu.
+        rs_return = VALUE #( type = zif_spt_core_data=>cs_message-type_error
+                            message = zcl_spt_utilities=>fill_return( iv_type = zif_spt_core_data=>cs_message-type_error
+                                                                      iv_id = lv_msgid
+                                                                      iv_number = lv_msgno
+                                                                      iv_message_v1 = lv_msgv1
+                                                                      iv_message_v2 = lv_msgv2
+                                                                      iv_message_v3 = lv_msgv3
+                                                                      iv_message_v4 = lv_msgv4
+                                                                      iv_langu      = sy-langu )-message ).
+      ENDIF.
     ENDIF.
 
   ENDMETHOD.
