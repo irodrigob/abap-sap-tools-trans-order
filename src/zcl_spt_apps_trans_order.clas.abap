@@ -348,22 +348,36 @@ CLASS zcl_spt_apps_trans_order IMPLEMENTATION.
         create_order( EXPORTING iv_type = zif_spt_trans_order_data=>orders_type-transport_copies
                                 iv_description = iv_description
                                 iv_system = iv_system
-                      IMPORTING es_return = DATA(ls_return)
+                      IMPORTING es_return = DATA(ls_return_created)
                                 ev_order = ev_order ).
 
-        IF ls_return-type NE zif_spt_core_data=>cs_message-type_error.
+        IF ls_return_created-type NE zif_spt_core_data=>cs_message-type_error.
           " Se pasa el contenido de las ordenes pasadas a la nueva orden
           copy_content_orders_2_order( EXPORTING it_from_orders = it_orders
                                                    iv_to_order = ev_order
                                        IMPORTING et_return = et_return ).
           IF et_return IS INITIAL.
             " Se libera la orden
-            INSERT release_order( EXPORTING iv_without_locking = abap_true " Evitamos el error de objetos de bloqueo por transporte de copias
-                                                               iv_order = ev_order ) INTO TABLE et_return.
+            DATA(ls_return_release) = release_order( EXPORTING iv_without_locking = abap_true " Evitamos el error de objetos de bloqueo por transporte de copias
+                                                               iv_order = ev_order ).
+            " Si hay un error añado el mensaje de la orden creada para que se sepa cual ha sido
+            " la orden creada y se puede tratar para arreglar el error
+            IF ls_return_release-type = zif_spt_core_data=>cs_message-type_error.
+              INSERT ls_return_created INTO TABLE et_return.
+              INSERT ls_return_release INTO TABLE et_return.
+            ELSE.
+            " Si no hay errores pongo el mensaje genérico de transporte de copias realizado.
+              INSERT VALUE #( type = zif_spt_core_data=>cs_message-type_success
+                              message = zcl_spt_utilities=>fill_return( iv_type = zif_spt_core_data=>cs_message-type_success
+                                                                      iv_id = zif_spt_trans_order_data=>cs_message-id
+                                                                      iv_number = '004'
+                                                                      iv_message_v1 = ev_order
+                                                                      iv_langu      = mv_langu )-message ) INTO TABLE et_return.
+            ENDIF.
 
           ENDIF.
         ELSE.
-          INSERT ls_return INTO TABLE et_return.
+          INSERT ls_return_created INTO TABLE et_return.
         ENDIF.
 
       ENDIF.
