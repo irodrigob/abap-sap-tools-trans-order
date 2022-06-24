@@ -14,6 +14,8 @@ CLASS zcl_spt_apps_trans_order DEFINITION
              task_user        TYPE uname,
              task_status      TYPE trstatus,
              task_status_desc TYPE val_text,
+             task_type       TYPE trfunction,
+             task_type_desc  TYPE val_text,
            END OF ts_user_orders.
     TYPES: tt_user_orders TYPE STANDARD TABLE OF ts_user_orders WITH EMPTY KEY.
     TYPES: BEGIN OF ts_systems_transport,
@@ -180,7 +182,7 @@ CLASS zcl_spt_apps_trans_order IMPLEMENTATION.
         et_requests          = lt_request.
 
 
-    SORT lt_request BY trfunction DESCENDING as4date DESCENDING as4time DESCENDING.
+    SORT lt_request BY trfunction as4date DESCENDING as4time DESCENDING.
 
     " Sacamos las padres para ir obteniendo los hijos
     LOOP AT lt_request ASSIGNING FIELD-SYMBOL(<ls_request>)
@@ -201,12 +203,18 @@ CLASS zcl_spt_apps_trans_order IMPLEMENTATION.
         INSERT ls_orders INTO TABLE et_orders ASSIGNING FIELD-SYMBOL(<ls_orders>).
         <ls_orders>-task = <ls_tasks>-trkorr.
         <ls_orders>-task_user = <ls_tasks>-as4user.
+        <ls_orders>-task_type = <ls_tasks>-trfunction.
         <ls_orders>-task_status = SWITCH #( <ls_tasks>-trstatus
                                              WHEN sctsc_state_protected OR sctsc_state_changeable THEN sctsc_state_changeable
                                              WHEN sctsc_state_released OR sctsc_state_export_started THEN sctsc_state_released ).
         READ TABLE lt_status_txt ASSIGNING <ls_dd07v> WITH KEY domvalue_l = <ls_orders>-task_status.
         IF sy-subrc = 0.
           <ls_orders>-task_status_desc = <ls_dd07v>-ddtext.
+        ENDIF.
+
+        READ TABLE lt_functions_txt ASSIGNING <ls_dd07v> WITH KEY domvalue_l = <ls_tasks>-trfunction.
+        IF sy-subrc = 0.
+          <ls_orders>-task_type_desc = <ls_dd07v>-ddtext.
         ENDIF.
       ENDLOOP.
       IF sy-subrc NE 0.
@@ -366,7 +374,7 @@ CLASS zcl_spt_apps_trans_order IMPLEMENTATION.
               INSERT ls_return_created INTO TABLE et_return.
               INSERT ls_return_release INTO TABLE et_return.
             ELSE.
-            " Si no hay errores pongo el mensaje genérico de transporte de copias realizado.
+              " Si no hay errores pongo el mensaje genérico de transporte de copias realizado.
               INSERT VALUE #( type = zif_spt_core_data=>cs_message-type_success
                               message = zcl_spt_utilities=>fill_return( iv_type = zif_spt_core_data=>cs_message-type_success
                                                                       iv_id = zif_spt_trans_order_data=>cs_message-id
