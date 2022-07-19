@@ -1,7 +1,7 @@
 INTERFACE zif_spt_trans_order_data
   PUBLIC .
   TYPES: tt_orders TYPE STANDARD TABLE OF trkorr WITH DEFAULT KEY.
-
+  TYPES: tt_orders_data TYPE STANDARD TABLE OF trwbo_request WITH DEFAULT KEY.
 
   CONSTANTS: BEGIN OF orders_type,
                transport_copies TYPE trfunction VALUE 'T',
